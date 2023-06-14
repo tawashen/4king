@@ -15,10 +15,10 @@
 (struct WORLD (PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) #:transparent)
 
 ;PLAYERインスタンス
-(define SJ (PLAYER "勇者スペードのジャック" '(11 . 11) '(22 . 22) '(9 . 9) '(sword) 20 '() #f 'win-sj))
-(define DJ (PLAYER "恋人ダイヤのジャック" '(10 . 10) '(20 . 20) '(10 . 10) '(sword) 20 '() 'skill-miracle 'win-dj))
-(define HJ (PLAYER "弟子ハートのジャック" '(9 . 9) '(18 . 18) '(11 . 11) '(sword) 20 '() 'skill-ilusion 'win-hj))
-(define CJ (PLAYER "悪魔クラブのジャック" '(10 . 10) '(20 . 20) '(9 . 9) '(sword) 20 '() 'skill-recover 'win-cj))
+(define SJ (PLAYER "勇者スペードのジャック" '(11 . 11) '(22 . 22) '(9 . 9) 'sword 20 '() #f 'win-sj))
+(define DJ (PLAYER "恋人ダイヤのジャック" '(10 . 10) '(20 . 20) '(10 . 10) 'sword 20 '() 'skill-miracle 'win-dj))
+(define HJ (PLAYER "弟子ハートのジャック" '(9 . 9) '(18 . 18) '(11 . 11) 'sword 20 '() 'skill-ilusion 'win-hj))
+(define CJ (PLAYER "悪魔クラブのジャック" '(10 . 10) '(20 . 20) '(9 . 9) 'sword 20 '() 'skill-recover 'win-cj))
 
 
 ;ITEMインスタンス　アイテムはリストにしなくても良い？

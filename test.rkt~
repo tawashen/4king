@@ -16,8 +16,8 @@
    ;              'mes-s1 (list zakura) (list rune-blade) #f #t #t))
 ;(NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP
 (define SA (CARD "SA" '(select satisfy-item battle) '(() ;selectには引数不要
-            ((numbing-medicine wine) luck? (((0 0 0) (-3 0) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
-           '()) ;battleには引数不要
+                                                      ((numbing-medicine wine) luck? (((0 0 0) (-3 0) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
+                                                      '()) ;battleには引数不要
                  'mes-sa '(zakura) '(rune-blade) 0 #t))
 
 ;SELECT> SATISFY-ITEM(luck) > BATTLE
@@ -58,34 +58,48 @@
                   (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
               (display "運試しの結果は・・") (newline)
               (if (> (PLAYER-LUCKP c-player) (dice)) 
-                  (luck-result W (car (list-ref A 2))) ;((0 0 0) (-3 0) #f)
-                  (luck-result W (cadr (list-ref A 2))))))) ;((0  -2 0) (0 0) 24)
+                  (luck-win W A)
+                  (luck-lose W A)))))
 
-(define luck-result (W A) ;satisfy-itemに返す
+(define luck-win (W A) ;satisfy-itemに返す
             (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
             (let* ((c-players (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                    (c-player (car c-players))
                   (c-card (list-ref COORD (list-ref PHASE 0)));今のCARDインスタンス
-                  (p-skill (car (car A))) (p-hit (cadr (car A)) (p-luck (caddr (car A)))
-                  (e-skill (car (cadr A))) (e-hit (cadr (cadr A)))))
+                  (c-arg (list-ref A 2)) ;Aの３つ目の引数を束縛しておく、これはステータス変更の数値
+                  (p-skill (car (car c-arg))) (p-hit (cadr (car c-arg))) (p-luck (caddr (car c-arg)))
+                  (e-skill (car (cadr c-arg))) (e-hit (cadr (cadr c-arg))))
               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player)
                          ((ENEMY ENAME ESKILLP EHITP) (car ENEMIES)))
               ((let ((new-player (PLAYER NAME (+ SKILLP p-skill) (+ HITP p-hit) (+ LUCKP p-luck) EQUIP GOLD ITEMS SPECIAL WIN))
                      (new-enemy (ENEMY ENAME (+ ESKILLP e-skill) (+ EHITP e-hit))))
-                 (let-values (((name status num)  (mes-return NAME ENAME (flatten A) 0)))
+                 (let-values (((name status num)  (mes-return NAME ENAME (flatten (car c-arg)) 0)))
                  (display (format "~aは~aが~aされた" name status num)))
                  (WORLD (list-set PLAYERS (car PHASE) (list-set c-players 0 new-player))
                         (list-set ENEMIES 0 new-enemy)
-                        MAPLIST SMAP PMAP PHASE COORD WIN))))))) ;LuckでのCOORD変更から続き
+                        MAPLIST SMAP PMAP PHASE COORD WIN)))))))
 
 (define (mes-return NAME ENAME c-arg count) ;(((0 0 0 -3 0 #f)
   (if (not (zero? (car c-arg)))
       (cond ((= count 0) (values NAME "技術点が"  (car c-arg)))
             ((= count 1) (values NAME "体力点が" (car c-arg)))
             ((= count 2) (vaules NAME "幸運点が" (car c-arg)))
-            ((= count 3) (values ENAME "技術点が" (car c-arg)))
-            ((= count 4) (values ENAME "体力点が" (car c-arg)))
+            ((= count 3) (values ENAME "技術点" (car c-arg)))
+            ((= count 4) (values ENAME "体力点" (car c-arg)))
             (else #f))
       (mes-return NAME ENAME (cdr c-arg) (+ 1 count))))
 
+  
+             
+(define luck-lose (W A)
+            (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+            (let ((c-player (car (list-ref PLAYERS (list-ref PHASE 0))));今のPLAYERインスタンス
+                  (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
+              (match-let (((PLAYER ...) c-player)
+                         ((ENEMY ...)ENEMIES))
+              ((let ((new-player (PLAYER ...))
+                     (new-enemies (ENEMY ...)))
+                 (display (format "~aは~aが~aされた" name status num))
+                 (WORLD new-player new-enemies MAPLIST SMAP PMAP PHASE COORD WIN)))))))
+             
 

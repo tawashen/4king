@@ -26,10 +26,12 @@
 
 (define rune-blade (ITEM "ルーンブレード" #f 'one-hand-weapon '(2 0)))                 
 (define zakura (ENEMY "戦士ザクラ" 12 12))
-(define SA (CARD "♠A" '(select satisfy-item battle) '(() ;selectには引数不要
-            ((numbing-medicine wine) luck? (((0 0 0) (-3 0) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
-           '()) ;battleには引数不要
-                 'mes-sa '(zakura) '(rune-blade) 0 #t))
+(define SA (CARD "♠Ａ" `(,SELECT ,LUCK-TRY)
+                 '(() ((numbing-medicine wine) (enemy SKILLP -3) (player HITP -2 24)))
+                  'mes-s1 (list zakura) (list rune-blade) #f #t));初期Eval用キー　ここではselectクロージャを呼び出す ;CARD-KIND
+               ;  '(LUCK-TRY (numbing-medicine wine) (enemy SKILLP -3) (player HITP -2 24));CARD-FIRST
+                 ;↑#tで続く（）で必要アイテム、次の（）で成功効果　最後の（）で失敗効果最後の真偽はJOK(24)行きかどうか
+                ; '(LUCKP -2) ;存在した場合は降服可能、BATTLEで参照してメニューを出す CARD-SECIND
                 
 
 (define silver-short-sord (ITEM "銀の短剣" 10 'sacred-weapon '(0 0)))
@@ -130,4 +132,3 @@
 (for-each displayln string-map)
 
 ;(length `(,SJ ,DJ ,HJ ,CJ))
-

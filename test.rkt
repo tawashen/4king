@@ -7,7 +7,7 @@
 (require racket/match)
 (require "4king-data.rkt")
 (require "4king-util.rkt")
-
+#|
 
 ;(define SA (CARD "♠A" 'SELECT ;初期Eval用キー ここではselectクロージャを呼び出す ;CARD-KIND
  ;                '(LUCK-TRY (numbing-medicine wine) (enemy SKILLP -3) (player HITP -2 24));CARD-FIRST
@@ -15,7 +15,7 @@
   ;               '(LUCKP -2) ;存在した場合は降服可能、BATTLEで参照してメニューを出す CARD-SECIND
    ;              'mes-s1 (list zakura) (list rune-blade) #f #t #t))
 ;(NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP
-(define SA (CARD "SA" '(select satisfy-item battle) '(() ;selectには引数不要
+(define SA (CARD "♠Ａ" '(select satisfy-item battle) '(() ;selectには引数不要
             ((numbing-medicine wine) luck? (((0 0 0) (-3 0) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
            '()) ;battleには引数不要
                  'mes-sa '(zakura) '(rune-blade) 0 #t))
@@ -88,4 +88,4 @@
             (else #f))
       (mes-return NAME ENAME (cdr c-arg) (+ 1 count))))
 
-
+|#

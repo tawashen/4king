@@ -27,83 +27,6 @@
 
 
 ;ここにしか置けない関数
-(define (go-direct direct w) ;新たなwを返す予定 COORDとplayer-mapを更新する
-  (let ((current ;PLAYER構造体から座標(INT)を束縛
-                  (list-ref (WORLD-COORD w) (car (WORLD-PHASE w))))) ;現在のPLYAER構造体を返す
-    (cond ((and (string=? direct "r") (ue? current)) (main-eval (change-coord direct w -7)))
-          ((and (string=? direct "d") (hidari? current)) (main-eval (change-coord direct w -1)))
-          ((and (string=? direct "c") (sita? current)) (main-eval (change-coord direct w 7)))
-          ((and (string=? direct "f") (migi? current)) (main-eval (change-coord direct w 1)))
-          (else (main-read w)))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;ここから関数のテスト
-;select 戦うかどうか選択のクロージャ 引数はworld
-(define select (lambda (W A)
-                 (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-               ;    (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
-                ;         (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
-                     (display "受けるか?") (newline)
-                     (let ((answer (read-line))) 
-                       (if (string=? "y" answer) ;戦闘を受ける場合
-                           W
-                           (main-read (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP (circular PHASE) COORD WIN)))))))
-                       
-(define satisfy-item (lambda (W A) ;アイテムのある無しで分岐するルールにする
-    (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-            (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
-                  (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
-              (if (satisfy-item? (PLAYER-ITEMS (car c-player)) (list-ref A 0)) ;Aの中身は適当
-                  ((hash-ref jack-table (list-ref A 1)) W A)
-                  (WORLD W A)))))) ;アイテムがなかった場合(多分)素通り
-                       
-(define luck? (lambda (W A) ;W Aはsatisfy-itemに入ってきてる引数そのまま
-        (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-            (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
-                  (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
-              (display "運試しをするかね?") (newline)
-              (let ((answer ((read-line))))
-                   (if (string=? "y") (luck W A) ;luckで変更後のWORLD構造体を返すようにする
-                       W)))))) ;しないなら素通しでW Aを返す
-
-
-(define (luck W A) ;W Aはsatisfy-itemに入ってきてる引数そのまま
-           (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-            (let ((c-player (car (list-ref PLAYERS (list-ref PHASE 0))));今のPLAYERインスタンス
-                  (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
-              (display "運試しの結果は・・") (newline)
-              (if (> (PLAYER-LUCKP c-player) (dice)) 
-                  (luck-result W (car (list-ref A 2))) ;((0 0 0) (-3 0) #f)
-                  (luck-result W (cadr (list-ref A 2))))))) ;((0  -2 0) (0 0) 24)
-
-(define (luck-result W A) ;satisfy-itemに返す
-            (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-            (let* ((c-players (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
-                   (c-player (car c-players))
-                  (c-card (list-ref COORD (list-ref PHASE 0)));今のCARDインスタンス
-                  (p-skill (car (car A))) (p-hit (cadr (car A))) (p-luck (caddr (car A)))
-                  (e-skill (car (cadr A))) (e-hit (cadr (cadr A))))
-              (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player)
-                         ((ENEMY ENAME ESKILLP EHITP) (car ENEMIES)))
-              (let ((new-player (PLAYER NAME (+ SKILLP p-skill) (+ HITP p-hit) (+ LUCKP p-luck) EQUIP GOLD ITEMS SPECIAL WIN))
-                     (new-enemy (ENEMY ENAME (+ ESKILLP e-skill) (+ EHITP e-hit))))
-                 (let-values (((name status num)  (mes-return NAME ENAME (flatten A) 0)))
-                 (display (format "~aは~aが~aされた" name status num)))
-                 (WORLD (list-set PLAYERS (car PHASE) (list-set c-players 0 new-player))
-                        (list-set ENEMIES 0 new-enemy)
-                        MAPLIST SMAP PMAP PHASE COORD WIN)))))) ;LuckでのCOORD変更から続き
-
-(define (mes-return NAME ENAME c-arg count) ;(((0 0 0 -3 0 #f)
-  (if (not (zero? (car c-arg)))
-      (cond ((= count 0) (values NAME "技術点が"  (car c-arg)))
-            ((= count 1) (values NAME "体力点が" (car c-arg)))
-            ((= count 2) (values NAME "幸運点が" (car c-arg)))
-            ((= count 3) (values ENAME "技術点が" (car c-arg)))
-            ((= count 4) (values ENAME "体力点が" (car c-arg)))
-            (else #f))
-      (mes-return NAME ENAME (cdr c-arg) (+ 1 count))))
-
-
 
 
 
@@ -143,20 +66,13 @@
   
 ;メインEVAL　移動後イベント発生
 (define (main-eval w)
-  (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) w))
+  (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) w))
   (display-map SMAP PMAP '()) (newline)
   (let ((c-card (list-ref test-zihuda-list (list-ref (WORLD-COORD w) (car (WORLD-PHASE w))))));現在いるカード
-  ;(if (list-ref MAPLIST (list-ref COORD PHASE)) ;CARD-ONが#fなら何も起きないので次のプレイヤーへ
-     
-
-      (display "to main-loop"))))
+  (if (list-ref MAPLIST (list-ref COORD PHASE)) ;CARD-ONが#fなら何も起きないので次のプレイヤーへ
+      ((hash-ref jack-table (CARD-KIND c-card)) w);#tならCARD-KINDを worldを引数に実行
+      (display "to main-loop")))))
      ; (main-loop (WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN)))))) ;main-loopで勝利条件の判定
-
-;(define (main-eval w) ;テスト用仮main-eval
- ; (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) w)
-  ;            (let ((c-card SA))
-   ;             (foldl 
-
 
   
 ;メインLOOP　次のプレイヤーか自身の次ターン
@@ -165,8 +81,8 @@
 
 
 ;select 戦うかどうか選択のクロージャ 引数はworld
-#;(define select-battle (lambda (x)
-                 (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) x))
+(define select-battle (lambda (x)
+                 (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) x))
                    (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                          (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
                      (display "受けるか?") (newline)
@@ -181,7 +97,7 @@
 
 
 
-;(hash-set! jack-table 'SELECT select-battle)
+(hash-set! jack-table 'SELECT select-battle)
 
 ;運試しするか？関数
 (define luck-try (lambda (x)
@@ -195,7 +111,6 @@
 
            
 ;luck 運試し
-#;
 (define luck (lambda (x)
                 (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) x))
                  (let ((c-card  (list-ref test-zihuda-list (list-ref COORD (list-ref PHASE 0)))))
@@ -231,14 +146,14 @@
 ;BATTLE関数 一時コメントアウト
 
 (define (battle-read wolrd)
-                 (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
-         (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) ;現在のカード
+                 (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) world))
+         (match-let (((CARD NAME KIND FIRST SECOND MES ENEMY ITEM GOLD ON FLIP) ;現在のカード
                                                               (list-ref test-zihuda-list (- (list-ref COORD (list-ref PHASE 0)) 1))))
-                  ; (let* 
-                      ;   (c-enemy ;(if WIN;運試しに勝ったか？
-                                     ; (case (list-ref (list-ref FIRST 2) 1);勝った場合 ここは大幅に書き換えないと駄目
-                                     ;   ((SKILLP) (ENEMY ENAME (+ ESKILLP (list-ref (list-ref FIRST 2) 2)))))
-                                   ;   ENEMY)));負けてたらそのまま
+                   (let* 
+                         (c-enemy (if WIN;運試しに勝ったか？
+                                      (case (list-ref (list-ref FIRST 2) 1);勝った場合 ここは大幅に書き換えないと駄目
+                                        ((SKILLP) (ENEMY ENAME (+ ESKILLP (list-ref (list-ref FIRST 2) 2)))))
+                                      ENEMY)));負けてたらそのまま
                      (display (format "~aとの戦闘だ！" (if (< 1 (length ENEMY)) "まもののむれ" (ENEMY-NAME (car ENEMY))))) (newline)
                      (battle-read2 world ENEMY)
                      )))
@@ -255,31 +170,31 @@
                (else (input-command (cdr player) enemy (cons answer numlist))))))))
 
 (define (battle-read2 world enemy)
-          (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
-           (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) ;現在のカード
+          (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) world))
+           (match-let (((CARD NAME KIND FIRST SECOND MES ENEMY ITEM GOLD ON FLIP) ;現在のカード
                         (list-ref test-zihuda-list (- (list-ref COORD (list-ref PHASE 0)) 1))))
              (let ((c-player (list-ref PLAYERS (car PHASE))))
-  #; (when  (symbol? FIRST)
+   (when  (symbol? FIRST)
          (if  (symbol=? 'BATTLE-CAN-SURRENDER FIRST)
          (surrender? world enemy) (void)))
-  #; (when (symbol? SECOND)
+   (when (symbol? SECOND)
          (if (symbol=?  'BATTLE-CAN-SURRENDER SECOND)
          (surrender? world　enemy) (void)))
    (battle-start world enemy)))))
 
 (define (surrender? world)
-           (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
-           (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) ;現在のカード
+           (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) world))
+           (match-let (((CARD NAME KIND FIRST SECOND MES ENEMY ITEM GOLD ON FLIP) ;現在のカード
                           (list-ref test-zihuda-list (- (list-ref COORD (list-ref PHASE 0)) 1))))
               (display "降参する?[y/n]") (newline) ;降参オプション有効なとき表示
              (let ((kousan-answer (read-line)))
-               (cond ((string=? "y" kousan-answer) (display "降参"));((hash-ref jack-table 'SURRENDER) SECOND world)) ;戦闘中に降参する 未実装
-                    ((not (string=? "y" kousan-answer)) (battle-start world ENEMIES))
+               (cond ((string=? "y" kousan-answer) ((hash-ref jack-table 'SURRENDER) SECOND world)) ;戦闘中に降参する 未実装
+                    ((not (string=? "y" kousan-answer)) (battle-start world enemy))
                     (else (void)))))))
 
 (define (battle-start world enemy)
-            (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
-              (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) ;現在のカード
+            (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) world))
+              (match-let (((CARD NAME KIND FIRST SECOND MES ENEMY ITEM GOLD ON FLIP) ;現在のカード
                                                               (list-ref test-zihuda-list (- (list-ref COORD (list-ref PHASE 0)) 1))))
              (let ((c-player (list-ref PLAYERS (car PHASE))))
                (newline)
@@ -372,7 +287,7 @@
   
 
 (define (battle-eval player enemy world command-list) ;playerは`(,SJ ,DJ ,HJ ,CJ)
-  (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
+  (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) world))
 		(let* ((enemy-attack-list (random-list (length enemy) (length player) '())) ;ex (1 1 2)
                         (battle-result-list
                          (battle-map player enemy command-list enemy-attack-list 1 '())))
@@ -404,7 +319,7 @@
 (hash-set! jack-table 'battle-mes-print battle-mes-print)
 
 (define (battle-loop players enemies world);このworldはまだ古いWORLD players enemiesはHP変更後
-  (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
+  (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) world))
     (let ((new-players (filter (lambda (x) (< 0 (car (PLAYER-HITP x)))) players))
           (new-enemies (filter (lambda (x) (< 0 (ENEMY-HITP x))) enemies)))
       (cond ((null? new-players) (display "to game-over"))
@@ -433,6 +348,20 @@
 ;;;;;;;;;;;ここまで
 
 
+
+
+
+      
+
+
+ 
+#|
+(define SA (CARD "SA" 'SELECT ;初期Eval用キー ここではselectクロージャを呼び出す
+                 '(LUCK-TRY (numbing-medicine wine) (enemy SKILLP -3) (player HITP -2 24))
+                 ;↑#tで続く()で必要アイテム、次の()で成功効果 最後の()で失敗効果最後の真偽はJOK行きかどうか
+                 '(LUCKP -2) ;存在した場合は降服可能、BATTLEで参照してメニューを出す
+                 'mes-s1 '(enemy-zakura) '(rune-blade) #f #t #t))
+|#                  
                      
                      
                

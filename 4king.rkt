@@ -100,7 +100,7 @@
                                         (cons (+ (car LUCKP) p-luck) (cdr LUCKP)) EQUIP GOLD ITEMS SPECIAL WIN))
                      (new-enemy (ENEMY ENAME (+ ESKILLP e-skill) (+ EHITP e-hit))))
                  (let-values (((name status num)  (mes-return NAME ENAME (flatten A) 0)))
-                 (display (format "~aは~aが~aされた" name status num)))
+                 (display (format "~aは~aが~aされた" name status num))) 
                  (WORLD (list-set PLAYERS (car PHASE) (list-set c-players 0 new-player))
                         (list-set ENEMIES 0 new-enemy)
                         MAPLIST SMAP PMAP PHASE COORD WIN)))))) ;LuckでのCOORD変更から続き
@@ -119,7 +119,7 @@
 
 
 (define (test-eval world card)
-  (foldl (lambda (func arg intial) (func world arg)) world (CARD-FLIST card) (CARD-ALIST card)))
+  (foldl (lambda (func arg initial) (func initial arg)) world (CARD-FLIST card) (CARD-ALIST card)))
 
 
 
@@ -246,7 +246,7 @@
                                      ;   ((SKILLP) (ENEMY ENAME (+ ESKILLP (list-ref (list-ref FIRST 2) 2)))))
                                    ;   ENEMY)));負けてたらそのまま
                      (display (format "~%~aとの戦闘だ！" (if (< 1 (length ENEMY)) "まもののむれ" (ENEMY-NAME (car ENEMY))))) (newline)
-                     (battle-read2 (WORLD PLAYERS ENEMY MAPLIST SMAP PMAP PHASE COORD WIN)
+                     (battle-read2 (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN)
                      ))))
 
 
@@ -416,7 +416,7 @@
           (new-enemies (filter (lambda (x) (< 0 (ENEMY-HITP x))) enemies)))
       (cond ((null? new-players) (display "to game-over"))
             ((null? new-enemies) (display "to main-read"))
-          (else (battle-read2 (WORLD (list-set PLAYERS (car PHASE) new-players) MAPLIST SMAP PMAP PHASE COORD WIN) new-enemies))))))
+          (else (battle-read2 (WORLD (list-set PLAYERS (car PHASE) new-players) new-enemies MAPLIST SMAP PMAP PHASE COORD WIN) ))))))
 
 
 (define test-list
@@ -426,7 +426,7 @@
 
 
 (define SA (CARD "♠A" `(,select ,satisfy-item ,battle-read) `(() ;selectには引数不要
-            ((,numbing-medicine ,wine) luck? (((0 0 0) (-3 0) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
+            ((,numbing-medicine ,wine) luck? (((0 0 0) (0 -3) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
            '()) ;battleには引数不要
                  'mes-sa `(,zakura) '(rune-blade) 0 #t))
 

@@ -102,12 +102,9 @@
 (define (satisfy-item? card-item player-item)
   (if (null? card-item)
       #t
-      (if (member (car card-item player-item))
+      (if (member (car card-item) player-item)
           (satisfy-item? (cdr card-item) player-item)
           #f)))
-
-  
-
 
 
 

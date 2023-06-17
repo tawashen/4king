@@ -425,7 +425,7 @@
 
 
 
-(define SA (CARD "♠A" `(,select ,satisfy-item ,battle-read) `(() ;selectには引数不要
+(define SA (CARD "♠A" `(,select ,satisfy-item ,luck? ,luck ,battle-read) `(() ;selectには引数不要
             ((,numbing-medicine ,wine) luck? (((0 0 0) (0 -3) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
            '()) ;battleには引数不要
                  'mes-sa `(,zakura) '(rune-blade) 0 #t))

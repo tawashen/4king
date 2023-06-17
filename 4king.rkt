@@ -42,28 +42,37 @@
 
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;ここから関数のテスト
-;select 戦うかどうか選択のクロージャ 引数はworld
-(define select (lambda (W A)
+
+;選択肢で脱出用の関数
+(define next-player (lambda (W A)
+          (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+            (main-read (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP (circular PHASE) COORD WIN)))))
+
+;select 戦うかどうか選択のクロージャ 
+(define select (lambda (W A) ;引数Aは (,satisfy-item（yだった場合） ,next-player（yじゃなかった場合)
                  (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
                    (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                          (c-card SA)) ;(list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
                      (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) SA))
                      (display "受けるか?") (newline)
                      (let ((answer (read-line))) 
-                       (if (string=? "y" answer) ;戦闘を受ける場合
-                           W
-                           (main-read (WORLD PLAYERS ENEMY MAPLIST SMAP PMAP (circular PHASE) COORD WIN)))))))))
+                       (if (string=? "y" answer) ;選択を受ける場合
+                           (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD (list-ref A 0));引数リストAの1つ目に目的のクロージャを指定
+                           ((list-ref A 1) W A))))))))
 
-
+;(,select ,next-player ,satisfy-item ,battle-read ,luck? ,battle-read ,luck ,battle-read)
                        
-(define satisfy-item (lambda (W A) ;アイテムのある無しで分岐するルールにする
+(define satisfy-item (lambda (W A) ;アイテムのある無しで分岐するルールにする 引数A(,luck? ,battle-read (必要なアイテム))
     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (cond ((equal WIN ?) ;このクロージャの名前)
             (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                   (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
-              (if (satisfy-item? (list-ref A 0) (PLAYER-ITEMS (car c-player)))
-                  ((hash-ref jack-table (list-ref A 1)) W A)
-                  W))))) ;アイテムがなかった場合(多分)素通り
+              (if (satisfy-item? (list-ref A 2) (PLAYER-ITEMS (car c-player)))
+                  (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD (list-ref A 0))
+                  (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD (list-ref A 1)))))
+                (else W))))) ;アイテムがなかった場合(多分)素通り
 
                        
 (define luck? (lambda (W A) ;W Aはsatisfy-itemに入ってきてる引数そのまま

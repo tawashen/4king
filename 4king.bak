@@ -66,7 +66,7 @@
                        
 (define satisfy-item (lambda (W A) ;アイテムのある無しで分岐するルールにする 引数A(,luck? ,battle-read (必要なアイテム))
     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-          (cond ((equal? WIN satisfy-item) ;このクロージャの名前)
+          (cond ((equal WIN ?) ;このクロージャの名前)
             (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                   (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
               (if (satisfy-item? (list-ref A 2) (PLAYER-ITEMS (car c-player)))

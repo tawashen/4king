@@ -40,30 +40,35 @@
           ((and (string=? direct "f") (migi? current)) (main-eval (change-coord direct w 1)))
           (else (main-read w)))))
 
+;選択肢で脱出用の関数
+(define next-player (lambda (W A)
+          (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+            (main-read (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP (circular PHASE) COORD WIN)))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;ここから関数のテスト
 ;select 戦うかどうか選択のクロージャ 引数はworld
-(define select (lambda (W A)
+(define select (lambda (W A) ;`(#f ,next-player)
                  (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
                    (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                          (c-card SA)) ;(list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
                      (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) SA))
                      (display "受けるか?") (newline)
                      (let ((answer (read-line))) 
-                       (if (string=? "y" answer) ;戦闘を受ける場合
-                           W
-                           (main-read (WORLD PLAYERS ENEMY MAPLIST SMAP PMAP (circular PHASE) COORD WIN)))))))))
+                       (if (not (string=? "y" answer)) ;戦闘を受ける場合
+                           ((list-ref A 1) W A)
+                           W)))))))
+(hash-set! jack-table 'select select)
 
 
-                       
-(define satisfy-item (lambda (W A) ;アイテムのある無しで分岐するルールにする
+;イベントが発生するのに必要なアイテムがあるかどうか調べる               
+(define satisfy-item (lambda (W A) ; `((necessary-items) `luck?)
     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
             (let ((c-player (list-ref PLAYERS (list-ref PHASE 0)));今のPLAYERインスタンス
                   (c-card (list-ref COORD (list-ref PHASE 0))));今のCARDインスタンス
               (if (satisfy-item? (list-ref A 0) (PLAYER-ITEMS (car c-player)))
                   ((hash-ref jack-table (list-ref A 1)) W A)
                   W))))) ;アイテムがなかった場合(多分)素通り
+(hash-set! jack-table 'satisfy-item satisfy-item)
 
                        
 (define luck? (lambda (W A) ;W Aはsatisfy-itemに入ってきてる引数そのまま

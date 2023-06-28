@@ -9,80 +9,137 @@
     (cond ((null? player-item) #f)
           ((member (car player-item) card-item) #t)
           (else (satisfy-item-doreka? card-item (cdr player-item)))))
-      
-(define palace (lambda (W A)
-                   (match-let (((WORLD ...)))
-                        (let ((c-player (...)))
+
+;王宮関数　テスト待ち
+(define palace (lambda (W A) ;world->world '(#f item 30 20 10 #f #f)
+                   (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+                        (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
                             (display "君は王の前でパフォーマンスを披露した")
                             (newline)
-                            (let ((dice ((random 1 7))))
-                                 (case dice
-                                       ((1) (add-item c-player ))
-                                       ((2) (add-gold c-player))
-                                       ((3) (add-gold c-player))
-                                       ((4) (add-gold c-player))
-                                       ((5) (display "何ももらえない"))
-                                       ((6) (force-coord 24))))))))
-(define (add-item player item)
-    (match-let (((PLAYER ...)))
-               (let ((new-player (NAME ... (cons item ITEM))))
-                    (WORLD ... new-player))))
-(define (add-gold player gold)
-    (match-let (((PLAYER ...)))
-               (PLAYER ... (+ gold (PLAYER-GOLD)))
-               ))
+                            (let ((dice (random 1 7)))
+                              (case dice
+                                ((1) (display (format "~aを授けよう~%" (list-ref A dice))))
+                                ((or 2 3 4) (display "~aゴールドを授けよう~%" (list-ref A dice)))
+                                ((5) (display (format "何もやらん！~%")))
+                                ((6) (display (format "牢獄行きじゃ！~%"))))                         
+                                (WORLD (list-set PLAYERS (car PHASE) (list-set PLAYERS (list-ref PHASE 0)
+                                                 (case dice
+                                       ((1) (add-item c-player (list-ref A dice)))
+                                       ((2) (add-gold c-player (list-ref A dice)))
+                                       ((3) (add-gold c-player (list-ref A dice)))
+                                       ((4) (add-gold c-player (list-ref A dice)))
+                                       ((5) c-player)
+                                       ((6) c-player))))
+                                       ENEMIES MAPLIST SMAP PMAP PHASE
+                                                (case dice
+                                                  ((6) (list-set COORD (list-ref PHASE 0) 24))
+                                                  (else COORD))
+                                                 WIN))))))
+                                       
+(define (add-item player item) ;player->player
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) player))
+               (NAME NAME SKILLP HITP LUCKP EQUIP GOLD (cons item ITEM) SPECIAL WIN)))
+
+(define (add-gold player gold) ;player->player
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) player))
+               (PLAYER NAME SKILLP HITP LUCKP EQUIP (+ gold (PLAYER-GOLD)) ITEMS SPECIAL WIN)))
            
-;DA
-(define shop (lambda (W A))
-    (match-let (((WORLD ..)))
-               (let ((c-player ...))
-                    (match-let (((PLAYER ...)))
-                            (let ((item-list (filter (lambda (x) (> GOLD (ITEM-COST x)) (list-ref A 0))))
-                        (for-each display (map (match-lambda (`(,num ,name . ,cost)
+;S2 `((,silver-short-sword ,war-hammer ,long-sword ,throwing-knife) #f #f)
+;S3 `((,magic-glove ,shield ,chain-mail) #f #f)
+;S4 `((,horse) #f #f)
+;S5 `((,numbing-medicine ,anesthetic ,medicinal-herb ,skill-herb ,power-herb ,luck-herb) #f #f)
+;S7 `((,lantern ,shovel ,rope ,lock-pick ,lute) #f #f)
+;S8 `((,womans-clothing ,magic-clothing ,black-clothing) #f #f)
+;S9 `((,cake) #f #f)
+;S10 `((,fake-jowely) #f #f)
+(define shop (lambda (W A) ;テスト待ち
+    (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+               (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+                    (match-let (((PLAYER  NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))
+                            (let ((item-list (filter (lambda (x) (> GOLD (ITEM-COST x)) (list-ref A 0)))))
+                        (for-each display (cons "[0:買い物を終える]" (map (match-lambda (`(,num ,name . ,cost)
                                                     (format "[~a][~a cost:~a]~%" num name cost)))
-                                    (enumerate (map (lambda (x) `(,(ITEM-NAME x) ,(ITEM-COST x))) A) 1)))
+                                    (enumerate (map (lambda (x) `(,(ITEM-NAME x) ,(ITEM-COST x))) item-list) 1))))
                                 (display "どれを買うかね?") (newline)
                                 (let ((answer (string->number (read-line))))
-                                     (cond ((= 0 answer) (next-player W A))
+                                     (cond ((= 0 answer) W)
                                            ((> answer (length A)) (shop W A))
                                            (else (begin 
                             (display (format "~aのお買い上げありがとうございます~%") (ITEM-NAME (list-ref item-list (- answer 1))))
-                            (shop (WORLD ... (cons (list-ref item-list (- answer 1)) PLAYER-ITEM) (- GOLD (ITEM-COST (list-ref item-list (- answer 1))))) A)))))))))))
-                                           
+                            (let* ((new-item (cons (list-ref item-list (- answer 1)) PLAYER-ITEM))
+                                   (new-gold (- GOLD (ITEM-COST (list-ref item-list (- answer 1)))))
+                                   (new-player (PLAYER NAME SKILLP HITP LUCKP EQUIP new-gold new-item SPECIAL WIN))                                   
+                                   (new-players (list-set PLAYERS (car PHASE) new-player)))
+                              (shop (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN A)))))))))))))
+
+
+;S6 (`(,acrobat ,performance ,handmagic ,instrument) #f #f)
+(define skill-shop (lambda (W A) ;スキル取得クロージャ
+    (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+               (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+                    (match-let (((PLAYER  NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))
+                            (let ((item-list (list-ref A 0)))
+                              (for-each display (map (match-lambda (`(,num ,name)
+                                                                    (format "[~a][~a]~%" num name)))
+                                                     (enumerate (map (lambda (x) `(,(ITEM-NAME x))) item-list) 1)))
+                              (display "どれを習いたい？") (newline)
+                              (let ((answer (string->number (read-line))))
+                                     (cond ((= 0 answer) W)
+                                           ((> answer (length A)) (skill-shop W A))
+                                           (else (begin 
+                            (display (format "~aを習得した~%") (ITEM-NAME (list-ref item-list (- answer 1))))
+                            (let* ((new-item (cons (list-ref item-list (- answer 1)) PLAYER-ITEM))
+                                   (new-hp (cons (- (car HITP) 4) (cdr HITP)))
+                                   (new-player (PLAYER NAME SKILLP new-hp LUCKP EQUIP GOLD ITEM SPECIAL WIN))                                   
+                                   (new-players (list-set PLAYERS (car PHASE) new-player)))
+                              (shop (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN A)))))))))))))
+                              
+                     
+
+
 ;selectにメッセージを引数として設定する!
-(define change-player-status (lambda (W A) ;引数はただのリストで一気に適用する
-     (match-let* (((WORLD ..))
-                   ((PLAYER ...))
-                   ((CARD ...)))
-               (new-player (PLAYER NAME ....))
-               (WORLD ...))))
-
 ;PLAYERのスロットにお尋ねスロットを作ること!
+;main-readに「移動しない」を付け加えること！
 
+
+;ステータスを一気に変更する関数を書こうと思ったが意味ないか・・
+(define change-player-status (lambda (W A) ;引数はただのリストで一気に適用する
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))
+               (let ((new-player (PLAYER NAME ....)))
+               (WORLD ...)))))))
+
+
+;後はテスト
 (define satify-status (lambda (W A)
-     (match-let* (((WORLD ..))
-                   ((PLAYER ...))                         
-                   ((CARD ...)))
-               (let ((c-plyaer ...))
-               (cond ((satify-status? c-player card-status) (WORLD ...)) ;満たしていれば素通り
-                     (else ((list-ref A 1) W A))))))) ;ここではA-LISTにnext-playerを入れておく
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))            
+               (cond ((satify-status? c-player (list-ref A 0)) W) ;満たしていれば素通り
+                     (else ((list-ref A 1) W A)))))))) ;ここではA-LISTにnext-playerを入れておく
                  
-                 
+;D10 selecet -> poltergeist -> next-player `(() #f #f)
 (define poltergeist (lambda (W A)
-   (match-let* (((WORLD ..))
-                   ((PLAYER ...))                         
-                   ((CARD ...)))
-                        (let loop ((p-skill (car (PLAYER-SKILLP))) (e-skill (ENEMY-SKILLP)) (count 0))
-                             (cond ((= 3 count) ((list-ref A 1))
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+                        (let loop ((p-skill (car (PLAYER-SKILLP c-player))) (e-skill (ENEMY-SKILLP (car ENEMIES))) (count 0))
+                             (cond ((= 3 count)
+                                    (into-world (add-gold c-player 30) W)) ;3回逃げ切ったら30goldゲットして次のクロージャへ
+                                   ;into-worldはplayer->world
                                  (else (
                         (display "[0]逃げ出す [1]踏ん張る") (newline)
                         (let ((answer (string->number (read-line))))
-                             (cond ((= 0 answer) ((list-ref A 0) W))
+                             (cond ((= 0 answer) 
                                    ((= 1 answer) (loop (p-skill e-skill (cond ((> (+ (dice) p-skill) (+ (dice) e-skill)) (+ count 1))
                                                                               (else 0)))))
                                                                           (else (loop p-skill e-skill count))))))))))))
 
-
+;into-world plyaer->world
+(define (into-world c-player world)
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+       (let ((new-players (list-set PLAYERS (car PHASE) c-player)))
+         (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN))))
 
 
 

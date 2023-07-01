@@ -37,12 +37,12 @@
                                                  WIN))))))
                                        
 (define (add-item player item) ;player->player
-    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) player))
-               (NAME NAME SKILLP HITP LUCKP EQUIP GOLD (cons item ITEM) SPECIAL WIN)))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) player))
+               (NAME NAME SKILLP HITP LUCKP EQUIP GOLD (cons item ITEM) SPECIAL STATUS)))
 
 (define (add-gold player gold) ;player->player
-    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) player))
-               (PLAYER NAME SKILLP HITP LUCKP EQUIP (+ gold (PLAYER-GOLD)) ITEMS SPECIAL WIN)))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) player))
+               (PLAYER NAME SKILLP HITP LUCKP EQUIP (+ gold (PLAYER-GOLD)) ITEMS SPECIAL STATUS)))
            
 ;S2 `((,silver-short-sword ,war-hammer ,long-sword ,throwing-knife) #f #f)
 ;S3 `((,magic-glove ,shield ,chain-mail) #f #f)
@@ -55,7 +55,7 @@
 (define shop (lambda (W A) ;テスト待ち
     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
                (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
-                    (match-let (((PLAYER  NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))
+                    (match-let (((PLAYER  NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                             (let ((item-list (filter (lambda (x) (> GOLD (ITEM-COST x)) (list-ref A 0)))))
                         (for-each display (cons "[0:買い物を終える]" (map (match-lambda (`(,num ,name . ,cost)
                                                     (format "[~a][~a cost:~a]~%" num name cost)))
@@ -68,7 +68,7 @@
                             (display (format "~aのお買い上げありがとうございます~%") (ITEM-NAME (list-ref item-list (- answer 1))))
                             (let* ((new-item (cons (list-ref item-list (- answer 1)) PLAYER-ITEM))
                                    (new-gold (- GOLD (ITEM-COST (list-ref item-list (- answer 1)))))
-                                   (new-player (PLAYER NAME SKILLP HITP LUCKP EQUIP new-gold new-item SPECIAL WIN))                                   
+                                   (new-player (PLAYER NAME SKILLP HITP LUCKP EQUIP new-gold new-item SPECIAL STATUS))                                   
                                    (new-players (list-set PLAYERS (car PHASE) new-player)))
                               (shop (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN A)))))))))))))
 
@@ -77,7 +77,7 @@
 (define skill-shop (lambda (W A) ;スキル取得クロージャ
     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
                (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
-                    (match-let (((PLAYER  NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))
+                    (match-let (((PLAYER  NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                             (let ((item-list (list-ref A 0)))
                               (for-each display (map (match-lambda (`(,num ,name)
                                                                     (format "[~a][~a]~%" num name)))
@@ -90,7 +90,7 @@
                             (display (format "~aを習得した~%") (ITEM-NAME (list-ref item-list (- answer 1))))
                             (let* ((new-item (cons (list-ref item-list (- answer 1)) PLAYER-ITEM))
                                    (new-hp (cons (- (car HITP) 4) (cdr HITP)))
-                                   (new-player (PLAYER NAME SKILLP new-hp LUCKP EQUIP GOLD ITEM SPECIAL WIN))                                   
+                                   (new-player (PLAYER NAME SKILLP new-hp LUCKP EQUIP GOLD ITEM SPECIAL STATUS))                                   
                                    (new-players (list-set PLAYERS (car PHASE) new-player)))
                               (shop (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN A)))))))))))))
                               
@@ -106,7 +106,7 @@
 (define change-player-status (lambda (W A) ;引数はただのリストで一気に適用する
      (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
           (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
-               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))
+               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                (let ((new-player (PLAYER NAME ....)))
                (WORLD ...)))))))
 
@@ -115,7 +115,7 @@
 (define satify-status (lambda (W A)
      (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
           (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
-               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player))            
+               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))            
                (cond ((satify-status? c-player (list-ref A 0)) W) ;満たしていれば素通り
                      (else ((list-ref A 1) W A)))))))) ;ここではA-LISTにnext-playerを入れておく
                  
@@ -135,12 +135,181 @@
                                                                               (else 0)))))
                                                                           (else (loop p-skill e-skill count))))))))))))
 
-;into-world plyaer->world
+;into-world plyaer->world　後でUtilへ移動
 (define (into-world c-player world)
      (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
        (let ((new-players (list-set PLAYERS (car PHASE) c-player)))
          (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN))))
 
+
+
+;0620 DQ poison-attackを考えるか先頭に付け加える
+
+;DK 戦いを拒否した場合出禁の処理を考える必要あり、お尋ね者と合わせてリストにシンボルをCONS
+(define corosseum (lambda (W A)
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+                   (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
+                      (display "闘技場だ!対戦相手は・・") (newline)
+                      (let* ((saikoro (random 1 7))
+                                      ((new-enemy (case saikoro)
+                                                  ((1) toge)
+                                                  ((2) wolf)
+                                                  ((3) panther)
+                                                  ((4) dragger)
+                                                  ((5) cyclops)
+                                                  ((6) hole-devil))))
+                                              (display (format "~a:HIT[~a] SKILL[~a]だ!~%戦うか?" 
+                                                               (ENEMY-NAME new-enemy)
+                                                               (ENEMY-HITPP new-enemy)
+                                                               (ENEMY-SKILLP new-enemy)))
+                            (let ((answer (read-line)))
+                                 (cond ((not (string=? answer "y"))
+                                        (let* ((new-status (cons 'dekin STATUS))
+                                               (new-player (PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL new-status)))
+                                        (next-player (into-world new-player W) A)))))))))))
+  
+                             
+;HA ウォーハンマー パワーハンマーのみで攻撃できる 武器種とは別に属性スロットが必要
+;装備変更関数
+(define (equip-change? c-player) ;player->player
+                          (displayln "変更する装備を選べ")
+                          (displayln "[0]やめる [1]武器 [2]鎧 [3]盾 [4]服 [5]手袋")
+                          (let ((answer (read-line)))
+                               (case answer
+                                     ((>= answer 5 (equip-change? c-player))
+                                     ((0) c-player);やめた場合そのままPlayerを返す
+                                     ((1) (equip-change c-player 'weapon))
+                                     ((2) (equip-change c-player 'armor))
+                                     ((3) (equip-change c-player 'shield))
+                                     ((4) (equip-change c-player 'cloth))
+                                     ((5) (equip-change c-player 'glove))))))
+
+(define (equip-change c-player kind) ;player->player
+   (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
+    (let ((can-equip-list (filter (lambda (x) (stirng=? kind (ITEM-KIND x))) ITEMS)));Kind引数にマッチするものをアイテムからフィルター
+         (cond ((null? can-equip-list) (displayln "ねえよ!") (equip-change? c-player));対応物が無かったら装備するか?へ戻す
+               (else 
+    (let ((plus-num-list (map (lambda (num item) (cons num item)) (iota (length can-equip-list) 1 1) can-equip-list)));番号をリストにくっつける
+    (for-each display (map (lambda (x) (format "[~a] ~a~%") (car x) (cdr x)) plus-num-list)) ;Noと装備候補表示
+    (let ((answer (string->num (read-line))))
+         (cond ((> answer (length can-equip-list)) equip-change c-player kind);答えがリスト以上だったらやり直し
+               ((<= answer 0) (equip-change? c-player));0だったら装備するか?に戻す
+               (else
+                   (let* ((new-player (to-item-list c-player kind));現在装備しているものをItemに戻す
+                          (new-equip (list-ref can-equip-list (- answer 1)));選んだアイテムをEquipにコピー
+                          (new-items (delete new-equip ITEM));Equipに指定したアイテムをItemから削除
+                        (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) new-player))
+                                   (PLAYER NAME SKILLP HITP LUCKP (cons new-equip EQUIP) GOLD new-items SPECIAL STATUS)))))))))))))
+
+;現在装備している装備をItemに戻す関数
+(define (to-item-list player kind) ;player->player
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) player))
+               (let* ((new-equip (filter (lambda (x) (not (string=? kind x))) EQUIP))
+                                 (new-item (filter (lambda (x) (string=? kind x) EQUIP))))
+                             (PLAYER NAME SKILLP HITP LUCKP new-equip GOLD (cons new-item ITEM) SPECIAL STATUS))))
+                             
+
+;H2 ('(,pendant 30) #f #f)
+;mainとして使うアイテムとゴールドをゲットするクロージャ
+(define get-item-and-gold (lambda (W A)) ;A
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+                   (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
+                     (into-world
+                      (PLAYER NAME SKILLP HITP LUCKP (+ GOLD (cadr (list-ref A 0))) (cons (car (list-ref A 0) ITEM)) SPECIAL STATUS)
+                      W)))))
+                 
+                 
+;ITEM-BUY ITEM-SELLを設定するITEM-BUYはITEM-COSTから変更
+(define pawn-shop (lambda (W A);質屋クロージャ アイテム構造体に売値を設定する
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
+                   (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
+               (displayln "何か買い取って欲しいものはあるかい?")
+               (let ((can-sell-item (filter (lambda (x) (ITEM-SELL x)) ITEM)))
+               (for-each display (cons "[0] やめる" (map (match-lambda (`(,num ,name . cost)
+                                                            (format "[~a] ~a:~aゴールド" num name cost))
+                                                        (enumerate (map (lambda (x) (cons x can-sell-item ))1))))))
+                                                    (let ((answer (string->num (read-line))))
+                    (cond ((> answer (length can-equip-list)) (pawn-shop W A));答えがリスト以上だったらやり直し
+                          ((<= answer 0) W);0だったらWをスルーで渡す
+                          (else
+                              (let* ((target-item (list-ref can-equip-list (- answer 1)))
+                                     (new-items (delete target-item ITEM))
+                                     (new-gold (- gold (ITEM-SELL target-item)))
+                                     (new-player (PLAYER NAME SKILLP HITP LUCKP EQUIP new-gold new-items SPECIAL STATUS))
+                                     (new-players (list-set PLAYERS (car PHASE) new-player)))
+                                 (pawn-shop (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) A)))))))))))
+                             
+;H5手強そう dai->next-player
+(define dai (lmabda (W A)
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let* ((c-player (list-ref PLAYERS (list-ref PHASE 0)))
+                 ;ex (2 3 0 1)の場合(list-ref players 2)が現在のP、[0] [1]店 [2]P3 [3]P0 [4]P1　となり
+                 ;(list-ref players (list-ref PHASE (- answer 1))で特定できる
+                                (target-players (delete PLAYERS c-player)))
+                    (displayln "どこから盗んで欲しいんだ?")
+                    (displayln "[0]やめる [1]店" )
+                (cond ((< 1 (length PLAYERS)) ;マルチプレイならプレイヤーから盗むのも表示
+                    (for-each displayln (map (match-lambda (`(,num ,player-name)
+                                                 (format "[~a]~a" num player-name))) target-players
+                                             (enumerate (map (lambda (x) (cons ))2)))))
+                                         (else (newline)))
+                                     (let ((answer (string->num (read-line))));ターゲット番号を入力
+                                          (cond ((= answer 0) W);0ならスルーして次のクロージャへ
+                                                ((> answer (+ 1 (length PLAYERS))) (dai W A));大きすぎる場合やり直し
+                                                ((= 1 answer) (dai-shop W) A) ;world->world
+                                                (else (dai-other-player W A answer c-palayer target-players))))))));world->world
+
+;dai-shop ゲーム全体の店からアイテムを盗む(店のアイテムを減らす必要なし)
+;大域変数全アイテムのリストall-can-buy-itemsを作っておく
+(define (dai-shop W A) ;world->world
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+          (let* ((c-player (list-ref PLAYERS (list-ref PHASE 0)))
+                                (target-players (delete PLAYERS c-player)))
+                    (for-each displayln (cons "[0]やめる" (map (match-lambda ('(,num . ,name)
+                                                            (format "[~a]~a" num name)))
+                                                              (enumerate (map (lambda (x y) (cons x (ITEM-NAME y))) all-can-buy-items) 1))))
+                                    (displayln "どれを盗んで欲しいんだ?")
+                                    (let ((answer (string->num (read-line))))
+                                         (cond ((= answer 0) (dai W A));0なら最初に戻る
+                                                ((> answer (length all-can-buy-items))) (dai-shop W A));大きすぎる場合やり直し
+                                                (else
+                                                    (cond ((success-luck? c-player) ;運試し成功した場合
+                                                      (let* ((choice-item ((list-ref all-can-buy-items (- answer 1))))
+                                                            (new-player (add-item c-player choice-item)))
+                                                            (into-world new-player W)))
+                                                        (else 
+                                                              (let ((new-coord (list-set COORD (car PHASE) 24)))
+                                                              (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE new-coord WIN)))))))))
+                                                          
+;dai-players
+(define (dai-other-players W A answer c-player target-players)
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+              (let* ((target-player (list-ref target-players (- answer 2)));0と1を抜かないといけないので2引く
+                     (match-let (((PLAYER TNAME TSKILLP THITP TLUCKP TEQUIP TGOLD TITEMS TSPECIAL TSTATUS) target-player))
+            (for-each display (cons "[0]:やめる" (map (match-lambda ('(,num ,name)
+                                    (format "[~a]~a" num name)))
+                                        (enumerate (map (lambda (x y) (cons x (ITEM-NAME y))) TITEMS) 1))))
+                                    (displayln "どれを盗んで欲しいんだ?")
+                                    (let ((answer (string->num (read-line))))
+                                         (cond ((= 0 answer) (dai W A))
+                                               ((> answer (length TITEMS)) (dai-players W A answer c-player target-players))
+                                               (else 
+                                                     (cond ((success-luck? c-player)
+                                                 (let* ((choice-item ((list-ref TITEMS (- answer 1))))
+                                                            (new-player (add-item c-player choice-item));アイテムを追加したPlayer
+                                                            (new-players1 (lise-set PLAYERS (car PHASE) new-player));新たなPlayers1
+                                                            (new-target-items (delete TITEMS choice-item));盗まれた後のアイテムリスト
+                                   (new-target-player (PLAYER TNAME TSKILLP THITP TLUCKP TEQUIP TGOLD new-target-items TSPECIAL TSTATUS))
+                                   (new-players2 (list-set new-players1 (list-ref PHASE (- answer 1)) new-target-player));新たなPlayers2
+                                   (WORLD new-players2 ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN))));->world
+                                                           (else
+                                                             (let ((new-coord (list-set COORD (car PHASE) 24)))
+                                                              (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE new-coord WIN))))))))))))
+                                                    
+;H6 バッドステータススロット必要、リスト形式で管理。逮捕歴、悪臭
 
 
 

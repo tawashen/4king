@@ -10,33 +10,33 @@
 ;構造体
 (struct CARD (NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) #:transparent)
 (struct ENEMY (NAME SKILLP HITP) #:transparent)
-(struct ITEM (NAME COST KIND POWER) #:transparent)
-(struct PLAYER (NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) #:transparent)
+(struct ITEM (NAME COST KIND ATT POWER) #:transparent)
+(struct PLAYER (NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) #:transparent)
 (struct WORLD (PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) #:transparent)
 
 
 
 
 ;ITEMインスタンス　アイテムはリストにしなくても良い？
-(define sword (ITEM "剣" #f 'one-hand-weapon '(0 0))) 
-(define wine (ITEM "ワイン" #f 'item '(0 0)))
-(define rune-blade (ITEM "ルーンブレード" #f 'one-hand-weapon '(2 0)))                 
+(define sword (ITEM "剣" #f 'weapon 'one-hand '(0 0))) 
+(define wine (ITEM "ワイン" #f 'item 'drink '(0 0)))
+(define rune-blade (ITEM "ルーンブレード" #f 'weapon 'one-hand '(2 0)))                 
 (define zakura (ENEMY "戦士ザクラ" 12 12))
 
                 
 
-(define silver-short-sord (ITEM "銀の短剣" 10 'sacred-weapon '(0 0)))
-(define war-hammer (ITEM "ウォーハンマー" 35 'physical-slayer '(0 0)))
-(define long-sword (ITEM "ロングソード" 30 'two-handed-weapon '(1 0)))
-(define throwing-knife (ITEM "投げナイフ" 10 'preemptive-strike '(0 2)))
+(define silver-short-sord (ITEM "銀の短剣" 10 'weapon 'sacred '(0 0)))
+(define war-hammer (ITEM "ウォーハンマー" 35 'weapon 'physical-slayer '(0 0)))
+(define long-sword (ITEM "ロングソード" 30 'weapon 'two-handed '(1 0)))
+(define throwing-knife (ITEM "投げナイフ" 10 'item 'preemptive-strike '(0 2)))
 ;(define S2 (CARD "♠２" 'S 2 'SHOP 'mes-s2 '() `(,silver-short-sord ,war-hammer ,long-sword ,throwing-knife) #f #t #f))
 
-(define magic-gloves (ITEM "魔法の手袋" 15 'glove 1))
-(define shield (ITEM "盾" 10 'shield 0))
-(define chain-mail (ITEM "鎖かたびら" 40 'armor 1))
+(define magic-gloves (ITEM "魔法の手袋" 15 'glove 'glove 1))
+(define shield (ITEM "盾" 10 'shield 'shield 0))
+(define chain-mail (ITEM "鎖かたびら" 40 'armor 'armor 1))
 ;(define S3 (CARD "♠３" 'S 3 'SHOP 'mes-s3 '() `(,magic-gloves ,shield ,chain-mail) #f #t #f))
 
-(define horse (ITEM "馬" 40 'speed-up 3))
+(define horse (ITEM "馬" 40 'horse 'speed-up 3))
 ;(define S4 (CARD "♠４" 'S 4 'SHOP 'mes-s4 '() `(,horse) #f #t #f))
 
 (define numbing-medicine(ITEM "しびれ薬" 5 'numbing 0))

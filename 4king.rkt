@@ -98,11 +98,11 @@
                   (c-card (list-ref COORD (list-ref PHASE 0)));今のCARDインスタンス
                   (p-skill (car (car A))) (p-hit (cadr (car A))) (p-luck (caddr (car A)))
                   (e-skill (car (cadr A))) (e-hit (cadr (cadr A))))
-              (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) c-player)
+              (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player)
                          ((ENEMY ENAME ESKILLP EHITP) (car ENEMIES)))
               (let ((new-player (PLAYER NAME (cons (+ (car SKILLP) p-skill) (cdr SKILLP))
                                         (cons (+ (car HITP) p-hit) (cdr HITP))
-                                        (cons (+ (car LUCKP) p-luck) (cdr LUCKP)) EQUIP GOLD ITEMS SPECIAL WIN))
+                                        (cons (+ (car LUCKP) p-luck) (cdr LUCKP)) EQUIP GOLD ITEMS SPECIAL STATUS))
                      (new-enemy (ENEMY ENAME (+ ESKILLP e-skill) (+ EHITP e-hit))))
                  (let-values (((name status num)  (mes-return NAME ENAME (flatten A) 0)))
                  (display (format "~aは~aが~aされた" name status num))) 
@@ -226,12 +226,12 @@
 
 ;PLYAERのステータスを変更する関数
 (define (change-status PLAYERS PHASE arg) ; ->PLAYERS
-  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) (list-ref PLAYERS PHASE)))
+  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) (list-ref PLAYERS PHASE)))
    (let ((new-player-status
     (case (list-ref arg 1)
       ((HITP) (PLAYER NAME SKILLP
                       (cons (+ (car HITP) (list-ref arg 2)) (cdr HITP))
-                      LUCKP EQUIP GOLD ITEMS SPECIAL WIN)))))
+                      LUCKP EQUIP GOLD ITEMS SPECIAL STATUS)))))
      (list-set PLAYERS PHASE new-player-status))))
   
 
@@ -246,7 +246,7 @@
          (match-let (((CARD NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) SA)) ;現在のカード
                                                              ; (list-ref test-zihuda-list (- (list-ref COORD (list-ref PHASE 0)) 1))))
                   ; (let* 
-                      ;   (c-enemy ;(if WIN;運試しに勝ったか？
+                      ;   (c-enemy ;(if STATUS;運試しに勝ったか？
                                      ; (case (list-ref (list-ref FIRST 2) 1);勝った場合 ここは大幅に書き換えないと駄目
                                      ;   ((SKILLP) (ENEMY ENAME (+ ESKILLP (list-ref (list-ref FIRST 2) 2)))))
                                    ;   ENEMY)));負けてたらそのまま
@@ -312,7 +312,7 @@
 
 ;戦闘の種類別判定
 (define (taiman car-player enemy e-count)
-  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) car-player))
+  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) car-player))
     (match-let (((ENEMY E-NAME E-SKILLP E-HITP) (list-ref enemy (- e-count 1))))
       (let ((p-attack (+ (car SKILLP) (dice))) (e-attack (+ E-SKILLP (dice))))
         (cond ((= p-attack e-attack) (values 'battle-gokaku NAME E-NAME 0 0))
@@ -320,14 +320,14 @@
               (else (values 'battle-ressei NAME E-NAME -2 0)))))))
 
 (define (bousen car-player enemy e-count)
-  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) car-player))
+  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) car-player))
     (match-let (((ENEMY E-NAME E-SKILLP E-HITP) (list-ref enemy (- e-count 1))))
       (let ((p-attack (+ (car SKILLP) (dice))) (e-attack (+ E-SKILLP (dice))))
         (cond ((>= p-attack e-attack) (values 'battle-kawasi NAME E-NAME 0 0))
               (else (values 'battle-ressei NAME E-NAME -2 0)))))))
 
 (define (ippouteki car-player enemy e-count)
-  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) car-player))
+  (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) car-player))
     (match-let (((ENEMY E-NAME E-SKILLP E-HITP) (list-ref enemy (- e-count 1))))
       (let ((p-attack (+ (car SKILLP) (dice))) (e-attack (+ E-SKILLP (dice))))
         (cond ((<= p-attack e-attack) (values 'battle-kawasare NAME E-NAME 0 0))
@@ -361,8 +361,8 @@
 ;ダメージを適用したPlayerインスタンスのリストを返す単体
 (define (damage-apply-player-zero car-player car-battle-result-list)
   (let ((player-total (foldl (lambda (y x) (+ x y)) 0 (map (lambda (z) (list-ref z 3)) car-battle-result-list))))
-    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL WIN) car-player))
-        (PLAYER NAME SKILLP (cons (+ player-total (car HITP)) (cdr HITP)) LUCKP EQUIP GOLD ITEMS SPECIAL WIN))));PLAYERインスタンス
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) car-player))
+        (PLAYER NAME SKILLP (cons (+ player-total (car HITP)) (cdr HITP)) LUCKP EQUIP GOLD ITEMS SPECIAL STATUS))));PLAYERインスタンス
 ;↑のマップ版
 (define (damage-apply-player-map player battle-result-list new-players)
   (if (null? player) (reverse new-players)
@@ -431,7 +431,7 @@
 
 
 (define SA (CARD "♠A" `(,select ,satisfy-item ,battle-read) `(() ;selectには引数不要
-            ((,numbing-medicine ,wine) luck? (((0 0 0) (0 -3) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
+            ((,numbing-medicine ,??) luck? (((0 0 0) (0 -3) #f) ((0  -2 0) (0 0) 24)));satisfy-item用引数
            '()) ;battleには引数不要
                  'mes-sa `(,zakura) '(rune-blade) 0 #t))
 

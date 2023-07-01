@@ -50,7 +50,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;関数
 (define (change-coord direct w num)
-  (match-let (((WORLD PLAYERS MAPLIST SMAP PMAP PHASE COORD WIN) w))
+  (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) w))
     (let* ((new-coord (list-set COORD PHASE (+ (list-ref COORD PHASE) num)))
            (new-pmap (make-players-map new-coord)))
       (WORLD PLAYERS MAPLIST SMAP new-pmap PHASE new-coord WIN))))
@@ -102,19 +102,10 @@
 (define (satisfy-item? card-item player-item)
   (if (null? card-item)
       #t
-      (if (member (car card-item player-item))
+      (if (member (car card-item) player-item)
           (satisfy-item? (cdr card-item) player-item)
           #f)))
 
-  
-(define (go-direct direct w) ;新たなwを返す予定 COORDとplayer-mapを更新する
-  (let ((current ;PLAYER構造体から座標(INT)を束縛
-                  (list-ref (WORLD-COORD w) (car (WORLD-PHASE w))))) ;現在のPLYAER構造体を返す
-    (cond ((and (string=? direct "r") (ue? current)) (main-eval (change-coord direct w -7)))
-          ((and (string=? direct "d") (hidari? current)) (main-eval (change-coord direct w -1)))
-          ((and (string=? direct "c") (sita? current)) (main-eval (change-coord direct w 7)))
-          ((and (string=? direct "f") (migi? current)) (main-eval (change-coord direct w 1)))
-          (else (main-read w)))))
 
 
 

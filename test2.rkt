@@ -313,3 +313,46 @@
 
 
 
+                                     
+
+;H7 satsify-item -> select ->delete-item ->luck-check ->luck-check ->next-player
+(define (luck-check W A) ;'(("おおっ成功じゃ" "ああ・・失敗じゃ" ,namari-knife) #f ,add-item)
+        (match-let (((PLAYER ...) c-player))
+               (cond ((>= (car LUCKP) (dice))
+                          (displayln (format "~a" (list-ref (list-ref A 1) 0)))
+                          (let ((new-luckp (cons (- (car LUCKP) 1) (cdr LUCKP))))
+                               (into-world (PLAYER ... new-luckp ...))))
+                    (else (displayln (format "~a ~を手に入れた" (list-ref (list-ref A 1) 1) (ITEM-NAME (list-ref (list-ref A 0) 2))))
+                          (let ((new-luckp (cons (- (car LUCKP) 1) (cdr LUCKP)))
+                               (next-player (into-world (PLAYER ... ((list-ref A 2) ((list-ref (list-ref A 0) 2))))))))))))
+                           
+
+;H8 check-multi ->select ->curse
+
+(define check-multi (lambda (W A) ;multi以外だったら次のターンへ
+                        (match-let (((WORLD ...)))
+                        (if (> (length PLAYERS) 1)
+                            W (next-player W A)))))
+                        
+                        
+;足止めの呪い用にステータスの項目に一度休みを追加、main-readで判定をするように書く!
+
+(define curse (lambda (W A) ;(("だれを狙うね?") (("asidome . 10") ("byouki" . 20) ("si" . 50)))
+                  (match-let (((WORLD ...)))
+                             (let* ((c-player ...)
+                                    (target-players (delete PLAYERS c-player)))
+                                  (displayln (format "~a" (list-ref (list-ref A 0) 0)))
+                                  (for-each displayln (cons "[0]やめる" (map (match-lambda `(,num ,name) (format "[~a] ~a" num name))
+                                                                          (enumerate (map (lambda (x) (PLAYER-NAME x)) target-players 1)))))
+                                    (let ((answerT (string->num (read-line))))
+                                         (cond ((= answerT 0) (next-player W))
+                                               ((> answerT (length PLAYERS)) (curse W A))
+                                               (else 
+                                                    (for-each displayln (cons "[0]やめる" (map (match-lambda `(,num ,kind ,cost)
+                                                                                                (format "[~a] ~a:~aゴールド" num kind cost))
+                                                                        (enumerate (map (lmabda (x) (list (car x) (cdr x))) (list-ref A 1)) 1))))
+                                                  (let ((target-player (list-ref target-player (- answerT 1))))
+                                                       
+                                                     なんか打てないのでRakcetで 
+                                                      
+

@@ -354,5 +354,232 @@
                                                   (let ((target-player (list-ref target-player (- answerT 1))))
                                                        
                                                      なんか打てないのでRakcetで 
-                                                      
+
+
+;kokokara0723
+                                                       
+;H9 select ->casino                                        
+(define casino (lambda (W A)
+                  (match-let (((WORLD ...)))
+                             (let ((c-player ...))
+                                  (match-let (((PLAYER ...) c-player))
+                                             (displayln "いくら賭ける?[1〜5ゴールド]")
+                                             (let ((kakekin (string->number (read-line))))
+                                                  (cond ((> kakekin GOLD) (displayln "足りないよ") (casino W A))
+                                                        ((<= kakekin 0) (next-player W))
+                                                        ((> kakekin 5) (displayln "賭けすぎ") (casino W A))
+                                                        (else 
+                                                              (displayln "どの数字に賭ける?[1〜6]")
+                                                              (let ((kakebangou (string->number (read-line))))
+                                                  (cond 
+                                                        ((<= kakebangou 0) (casino W A))
+                                                        ((> kakebangou 6) (displayln "6までだっての") (casino W A))
+                                                        (else
+                                                            (let ((result-num (random 1 7)))
+                                                                 (cond ((member? ITMES 'magic)
+                                                                                 (displayln "手品を使ってイカサマをするか?")
+                                                                                 (let ((answer (read-line)))
+                                                                                      (cond ((string=? answer 'y)
+                                                                                                       (cond ((inner-luck? c-player) 
+                                                                                                                           (displayln "あんたの勝ち!")
+                                                                                                                           (into-world (add-gold (dec-luck c-player) (* 6 kakekin))))
+                                                                                                            (else (into-world (to-jok c-player))))))))))))
+(define (inner-luck? c-player)
+    (match-let (((PLAYER ...) c-player))
+               (if (> (car LUCKP) (dice)) #t #f)))
+           
+(define (dec-luck c-player)
+    (match-let (((PLAYER ...) c-player))
+               (PLAYER ... (cons (- (car LUCKP) 1) (cdr LUCKP)) ...)))
+           
+
+;H10 satisy-items ->luck? ->luck ->next-player
+;HQ satisy-item ->battle
+
+;HK
+(define cresent (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (match-let (((PLAYER ...) c-player))
+                                               (case NAME
+                                                     ((dia) (if (win-check? c-player) (you-win c-player)))
+                                                     ((heart) (if (win-check? c-player) (you-win c-player)))
+                                                     (else (next-player))))))))
+                                                 
+
+;CA satisy-item ->panalty-battle ->add-item
+(define penalty-battle (lmabda (W A)
+                               ;battleを改変してコピー
+                               
+
+                               
+;C2 select ->luck-ido
+(define luck-ido (lmabda (W A)
+            (let ((c-player (...)))
+                 (match-let (((PLAYER ...) c-player))
+            (into-world (change-gold (change-luck c-player 1) (list-ref A 0)) W))
+                        
+(define (change-luck c-player num)
+    (match-let (((PLAYER ...) c-player))
+               (let ((new-luckp (cond ((> (+ (car LUCKP) 1) (cdr LUCKP)) (cdr LUCKP))
+                                      (else (+ (car LUCKP) 1)))))
+               (PLYER ... (cons new-luckp (cdr LUCKP))))))
+           
+(define (change-gold c-player num)
+    (match-let (((PLAYER ...) c-player))
+               (PLAYER ... (+ gold num) ...)))
+
+(define (change-hitp c-player num)
+    (match-let (((PLAYER ...) c-player))
+               (let ((new-hitp (cond ((> (+ (car HITP) 1) (cdr HITP)) (cdr HITP))
+                                      (else (+ (car HITP) 1)))))
+               (PLYER ... (cons new-hitp (cdr HITP))))))
+           
+(define (change-skillp c-player num)
+    (match-let (((PLAYER ...) c-player))
+               (let ((new-skillp (cond ((> (+ (car SKILLP) 1) (cdr SKILLP)) (cdr SKILLP))
+                                      (else (+ (car SKILLP) 1)))))
+               (PLYER ... (cons new-skillp (cdr SKILLP))))))
+           
+(define (change-luckp c-player num)
+    (match-let (((PLAYER ...) c-player))
+               (let ((new-luckp (cond ((> (+ (car LUCKP) 1) (cdr LUCKP)) (cdr LUCKP))
+                                      (else (+ (car LUCKP) 1)))))
+               (PLYER ... (cons new-luckp (cdr LUCKP))))))
+           
+(define (change-coord W num)
+                    (match-let (((WORLD ...) W))
+                               (WORLD ... (list-set COORD (car PHASE) num))))
+                                    
+    
+           
+           
+;C3 satisfy-gold ->tenbo
+(define tenbo (lambda (W A)
+                  (let ((c-player ...))
+                       (displayln "覗くか?")
+                       (let ((answer (read-line)))
+                            (cond (((not (string=? asnwer 'y)) next-player W))
+                                  (else 
+                                        (displayln "どの座標を観たい?[0〜49]")
+                                        (let ((answerN (string->num (read-line))))
+                                             (cond ((>= answerN 50) tenbo W A)
+                                                   (else (displayln (format "~aだな" (CARD-NAME (list-ref *map* asnwerN))))
+                                                         (tenbo (into-world (dec-gold c-player 1) W) A))))))))))
+
+;C4 satisfy-gold ->select ->shokudo
+;ターン開始時に居残り可能か移動必須かを決める機能追加
+(define shokudo (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (next-player (into-world (change-gold (change-hitp c-player 4) -2)) A)))))
+                                
+;C5 select ->magic-shop
+(define magic-shop (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (displayln "どのサービスを受けたいのかな?[0]やめる")
+                                    (let ((answer (string->num (read-line))))
+                                         (case answer 
+                                               ((0) (next-player W))
+                                               ((1) (next-player (into-world (change-gold (change-skillp c-player (cdr SKILLP)) -10))))
+                                               ((2) (next-player (into-world (change-gold (change-hitp c-player (cdr HITP)) -10))))
+                                               ((3) (next-player (into-world (change-gold (change-luckp c-player (cdr LUCKP)) -10))))
+                                               ((4) 
+                                                    (displayln "どこにジャンプする?[0]やめる")
+                                                    (let ((answerN (string->num (read-line))))
+                                                         (case answerN
+                                                               ((0) (magic-shop W A))
+                                                               ((> 49) (magic-shop W A))
+                                                               (else (next-player (change-coord (into-world (change-gold c-player -10)) answerN))))))))))))
+                                                           
+;C6 select ->bath
+(define bath (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (next-player (into-world (change-gold (del-status c-player 'stink) -1) W))))))
+                                
+;C7 gakki ->sake-shop
+(define gakki (lmabda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (cond ((inner-satisfy-items? c-player (list-ref A 0))
+                                                                 (displayln "楽器演奏するかね?")
+                                                                 (let ((answer (read-line)))
+                                                                      (cond ((string=? answer 'y')
+                                                                                       (cond ((>= (car SKILLP) (dice))
+                                                                                                  (into-world (change-gold c-player (random 1 7))))
+                                                                                              (else (into-world (change-luckp c-player -1)))))
+                                                                            (else W))))
+                                                                        (else W))))))
+                                                                    
+(define sake-shop (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (displayln "お酒を買うかね?")
+                                    (let ((answer (read-line)))
+                                         (cond ((not (string=? answer 'y)) W)
+                                               (else (into-world (change-gold (add-item c-player 'sake) -2)))))))))
+                                           
+;C8 select ->togi
+;ITEMの武器の種類にNormalとかSilverとかMagicとかをつくる
+;戦闘開始時に使う武器を選ぶようにする
+(define togi-shop (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (let ((blade-list (filter (lambda (x) (string=? 'normal-blade (ITEM-KIND x))) ITEMS)))
+                                         (for-each displayln (cons "[0]やめる" (map (match-lambda ((,num ,name)
+                                                                                       (format "[~a]~a" num name))) 
+                                                                                   (enumerate (map (lambda (y) (ITEM-NAME y)) blade-list) 1))))
+                                                                               (let ((answerN (read-line)))
+                                                                                    (cond ((= 0 answerN) (next-player W))
+                                                                                          ((> (length blade-list) answerN) (togi-shop W A))
+                                                                                          (else
+                                                                                              (let ((new-blade (list-ref blade-list (- (answerN) 1))))
+                                                                                                   (match-let (((ITEM ...) new-blade))
+                                                                                                              (match-let (((PLAYER ...) c-player)))
+                                                                                                              (into-world (change-gold 
+                                                                                                                          (PLAYER ...(cons (ITEM ... (+ 1 POWER) ...) (del-list ITEMS new-blade)))
+                                                                                                                          -10)
+                                                                                                                          W)))))))))))
+                                                                                                                      
+;C9 select ->shop ->guild
+(define guild-shop (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                  (displayln "何か技能を学ぶかね?")
+                  (for-each displayln (cons "[0]やめる" (map (match-lambda ((,num ,name)
+                                                                               (format "[~a] ~a" num name)))
+                                                                           (enumerate (map (lambda (y) (ITEM-NAME y)) (list-ref A 0)) 1))))
+                                                                       (let ((answerN) (string->num (read-line)))
+                                                                            (cond ((= 0 answerN) W)
+                                                                                  ((> answerN (length (list-ref A 0)) guild-shop W A))
+                                                                                  (else
+                                                                                      (match-let (((PLAYER ...) c-player))
+                                                                                                  (into-world (change-hitp 
+                                                                                                              (PLAYER ...(cons (list-ref A (- answerN 1)) ITEMS) ...)
+                                                                                                              (cond ((doreka-itemu (list-ref A 0) ITEMS) -4)
+                                                                                                                    (else -6)))
+                                                                                                              (next-player W))))))))))
+
+
+;リストからアイテムを除去
+(define (delete-item-list item lst new-lst)
+    (cond ((null? lst) new-lst)
+          ((equal? item (car lst)) (delete-item-list item (cdr lst) new-lst))
+          (else (delete-item-list item (cdr lst) (cons (car lst) new-lst)))))
+                                                                                                          
+;C10 傭兵はアイテム扱いにして戦闘システムに組み込むことにする
+(define youhei (lambda (W A)
+                    (match-let (((WORLD ...) W))
+                               (let ((c-player (...)))
+                                    (next-player (into-world (change-gold (add-item c-player 'youhei) -30 W)))))))
+                                
+;CQ satisy-item ->battle
+
+;CK
+(define bunta (lambda (W A)
+                  ))
+                                    
+                                                           
 

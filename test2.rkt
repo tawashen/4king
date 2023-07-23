@@ -2,13 +2,10 @@
 
 ; Your code here!
 
-
+(require "4king-util.rkt")
 
 ;SK (satisfy-item-doreka satify-item palace)
-(define (satisfy-item-doreka? card-item player-item)
-    (cond ((null? player-item) #f)
-          ((member (car player-item) card-item) #t)
-          (else (satisfy-item-doreka? card-item (cdr player-item)))))
+
 
 ;王宮関数　テスト待ち
 (define palace (lambda (W A) ;world->world '(#f item 30 20 10 #f #f)
@@ -25,9 +22,9 @@
                                 (WORLD (list-set PLAYERS (car PHASE) (list-set PLAYERS (list-ref PHASE 0)
                                                  (case dice
                                        ((1) (add-item c-player (list-ref A dice)))
-                                       ((2) (add-gold c-player (list-ref A dice)))
-                                       ((3) (add-gold c-player (list-ref A dice)))
-                                       ((4) (add-gold c-player (list-ref A dice)))
+                                       ((2) (change-gold c-player (list-ref A dice)))
+                                       ((3) (change-gold c-player (list-ref A dice)))
+                                       ((4) (change-gold c-player (list-ref A dice)))
                                        ((5) c-player)
                                        ((6) c-player))))
                                        ENEMIES MAPLIST SMAP PMAP PHASE
@@ -36,13 +33,7 @@
                                                   (else COORD))
                                                  WIN))))))
                                        
-(define (add-item player item) ;player->player
-    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) player))
-               (NAME NAME SKILLP HITP LUCKP EQUIP GOLD (cons item ITEM) SPECIAL STATUS)))
 
-(define (add-gold player gold) ;player->player
-    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) player))
-               (PLAYER NAME SKILLP HITP LUCKP EQUIP (+ gold (PLAYER-GOLD)) ITEMS SPECIAL STATUS)))
            
 ;S2 `((,silver-short-sword ,war-hammer ,long-sword ,throwing-knife) #f #f)
 ;S3 `((,magic-glove ,shield ,chain-mail) #f #f)
@@ -102,22 +93,9 @@
 ;main-readに「移動しない」を付け加えること！
 
 
-;ステータスを一気に変更する関数を書こうと思ったが意味ないか・・
-(define change-player-status (lambda (W A) ;引数はただのリストで一気に適用する
-     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
-               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
-               (let ((new-player (PLAYER NAME ....)))
-               (WORLD ...)))))))
 
 
-;後はテスト
-(define satify-status (lambda (W A)
-     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-          (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
-               (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))            
-               (cond ((satify-status? c-player (list-ref A 0)) W) ;満たしていれば素通り
-                     (else ((list-ref A 1) W A)))))))) ;ここではA-LISTにnext-playerを入れておく
+
                  
 ;D10 selecet -> poltergeist -> next-player `(() #f #f)
 (define poltergeist (lambda (W A)
@@ -125,7 +103,7 @@
           (let ((c-player (list-ref PLAYERS (list-ref PHASE 0))))
                         (let loop ((p-skill (car (PLAYER-SKILLP c-player))) (e-skill (ENEMY-SKILLP (car ENEMIES))) (count 0))
                              (cond ((= 3 count)
-                                    (into-world (add-gold c-player 30) W)) ;3回逃げ切ったら30goldゲットして次のクロージャへ
+                                    (into-world (change-gold c-player 30) W)) ;3回逃げ切ったら30goldゲットして次のクロージャへ
                                    ;into-worldはplayer->world
                                  (else (
                         (display "[0]逃げ出す [1]踏ん張る") (newline)
@@ -135,11 +113,7 @@
                                                                               (else 0)))))
                                                                           (else (loop p-skill e-skill count))))))))))))
 
-;into-world plyaer->world　後でUtilへ移動
-(define (into-world c-player world)
-     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
-       (let ((new-players (list-set PLAYERS (car PHASE) c-player)))
-         (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN))))
+
 
 
 
@@ -171,43 +145,9 @@
   
                              
 ;HA ウォーハンマー パワーハンマーのみで攻撃できる 武器種とは別に属性スロットが必要
-;装備変更関数
-(define (equip-change? c-player) ;player->player
-                          (displayln "変更する装備を選べ")
-                          (displayln "[0]やめる [1]武器 [2]鎧 [3]盾 [4]服 [5]手袋")
-                          (let ((answer (read-line)))
-                               (case answer
-                                     ((>= answer 5 (equip-change? c-player))
-                                     ((0) c-player);やめた場合そのままPlayerを返す
-                                     ((1) (equip-change c-player 'weapon))
-                                     ((2) (equip-change c-player 'armor))
-                                     ((3) (equip-change c-player 'shield))
-                                     ((4) (equip-change c-player 'cloth))
-                                     ((5) (equip-change c-player 'glove))))))
 
-(define (equip-change c-player kind) ;player->player
-   (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
-    (let ((can-equip-list (filter (lambda (x) (stirng=? kind (ITEM-KIND x))) ITEMS)));Kind引数にマッチするものをアイテムからフィルター
-         (cond ((null? can-equip-list) (displayln "ねえよ!") (equip-change? c-player));対応物が無かったら装備するか?へ戻す
-               (else 
-    (let ((plus-num-list (map (lambda (num item) (cons num item)) (iota (length can-equip-list) 1 1) can-equip-list)));番号をリストにくっつける
-    (for-each display (map (lambda (x) (format "[~a] ~a~%") (car x) (cdr x)) plus-num-list)) ;Noと装備候補表示
-    (let ((answer (string->num (read-line))))
-         (cond ((> answer (length can-equip-list)) equip-change c-player kind);答えがリスト以上だったらやり直し
-               ((<= answer 0) (equip-change? c-player));0だったら装備するか?に戻す
-               (else
-                   (let* ((new-player (to-item-list c-player kind));現在装備しているものをItemに戻す
-                          (new-equip (list-ref can-equip-list (- answer 1)));選んだアイテムをEquipにコピー
-                          (new-items (delete new-equip ITEM));Equipに指定したアイテムをItemから削除
-                        (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) new-player))
-                                   (PLAYER NAME SKILLP HITP LUCKP (cons new-equip EQUIP) GOLD new-items SPECIAL STATUS)))))))))))))
 
-;現在装備している装備をItemに戻す関数
-(define (to-item-list player kind) ;player->player
-    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) player))
-               (let* ((new-equip (filter (lambda (x) (not (string=? kind x))) EQUIP))
-                                 (new-item (filter (lambda (x) (string=? kind x) EQUIP))))
-                             (PLAYER NAME SKILLP HITP LUCKP new-equip GOLD (cons new-item ITEM) SPECIAL STATUS))))
+
                              
 
 ;H2 ('(,pendant 30) #f #f)
@@ -316,7 +256,7 @@
                                      
 
 ;H7 satsify-item -> select ->delete-item ->luck-check ->luck-check ->next-player
-(define (luck-check W A) ;'(("おおっ成功じゃ" "ああ・・失敗じゃ" ,namari-knife) #f ,add-item)
+(define (luck-check (lambda (W A) ;'(("おおっ成功じゃ" "ああ・・失敗じゃ" ,namari-knife) #f ,add-item)
         (match-let (((PLAYER ...) c-player))
                (cond ((>= (car LUCKP) (dice))
                           (displayln (format "~a" (list-ref (list-ref A 1) 0)))
@@ -324,7 +264,7 @@
                                (into-world (PLAYER ... new-luckp ...))))
                     (else (displayln (format "~a ~を手に入れた" (list-ref (list-ref A 1) 1) (ITEM-NAME (list-ref (list-ref A 0) 2))))
                           (let ((new-luckp (cons (- (car LUCKP) 1) (cdr LUCKP)))
-                               (next-player (into-world (PLAYER ... ((list-ref A 2) ((list-ref (list-ref A 0) 2))))))))))))
+                               (next-player (into-world (PLAYER ... ((list-ref A 2) ((list-ref (list-ref A 0) 2))))))))))))))
                            
 
 ;H8 check-multi ->select ->curse
@@ -352,8 +292,7 @@
                                                                                                 (format "[~a] ~a:~aゴールド" num kind cost))
                                                                         (enumerate (map (lmabda (x) (list (car x) (cdr x))) (list-ref A 1)) 1))))
                                                   (let ((target-player (list-ref target-player (- answerT 1))))
-                                                       
-                                                     なんか打てないのでRakcetで 
+                                                      
 
 
 ;kokokara0723
@@ -382,15 +321,9 @@
                                                                                       (cond ((string=? answer 'y)
                                                                                                        (cond ((inner-luck? c-player) 
                                                                                                                            (displayln "あんたの勝ち!")
-                                                                                                                           (into-world (add-gold (dec-luck c-player) (* 6 kakekin))))
+                                                                                                                           (into-world (change-gold (change-luck c-player -1) (* 6 kakekin))))
                                                                                                             (else (into-world (to-jok c-player))))))))))))
-(define (inner-luck? c-player)
-    (match-let (((PLAYER ...) c-player))
-               (if (> (car LUCKP) (dice)) #t #f)))
-           
-(define (dec-luck c-player)
-    (match-let (((PLAYER ...) c-player))
-               (PLAYER ... (cons (- (car LUCKP) 1) (cdr LUCKP)) ...)))
+
            
 
 ;H10 satisy-items ->luck? ->luck ->next-player
@@ -419,40 +352,7 @@
                  (match-let (((PLAYER ...) c-player))
             (into-world (change-gold (change-luck c-player 1) (list-ref A 0)) W))
                         
-(define (change-luck c-player num)
-    (match-let (((PLAYER ...) c-player))
-               (let ((new-luckp (cond ((> (+ (car LUCKP) 1) (cdr LUCKP)) (cdr LUCKP))
-                                      (else (+ (car LUCKP) 1)))))
-               (PLYER ... (cons new-luckp (cdr LUCKP))))))
-           
-(define (change-gold c-player num)
-    (match-let (((PLAYER ...) c-player))
-               (PLAYER ... (+ gold num) ...)))
 
-(define (change-hitp c-player num)
-    (match-let (((PLAYER ...) c-player))
-               (let ((new-hitp (cond ((> (+ (car HITP) 1) (cdr HITP)) (cdr HITP))
-                                      (else (+ (car HITP) 1)))))
-               (PLYER ... (cons new-hitp (cdr HITP))))))
-           
-(define (change-skillp c-player num)
-    (match-let (((PLAYER ...) c-player))
-               (let ((new-skillp (cond ((> (+ (car SKILLP) 1) (cdr SKILLP)) (cdr SKILLP))
-                                      (else (+ (car SKILLP) 1)))))
-               (PLYER ... (cons new-skillp (cdr SKILLP))))))
-           
-(define (change-luckp c-player num)
-    (match-let (((PLAYER ...) c-player))
-               (let ((new-luckp (cond ((> (+ (car LUCKP) 1) (cdr LUCKP)) (cdr LUCKP))
-                                      (else (+ (car LUCKP) 1)))))
-               (PLYER ... (cons new-luckp (cdr LUCKP))))))
-           
-(define (change-coord W num)
-                    (match-let (((WORLD ...) W))
-                               (WORLD ... (list-set COORD (car PHASE) num))))
-                                    
-    
-           
            
 ;C3 satisfy-gold ->tenbo
 (define tenbo (lambda (W A)
@@ -506,7 +406,7 @@
                                     (cond ((inner-satisfy-items? c-player (list-ref A 0))
                                                                  (displayln "楽器演奏するかね?")
                                                                  (let ((answer (read-line)))
-                                                                      (cond ((string=? answer 'y')
+                                                                      (cond ((string=? answer 'y)
                                                                                        (cond ((>= (car SKILLP) (dice))
                                                                                                   (into-world (change-gold c-player (random 1 7))))
                                                                                               (else (into-world (change-luckp c-player -1)))))
@@ -539,7 +439,7 @@
                                                                                                    (match-let (((ITEM ...) new-blade))
                                                                                                               (match-let (((PLAYER ...) c-player)))
                                                                                                               (into-world (change-gold 
-                                                                                                                          (PLAYER ...(cons (ITEM ... (+ 1 POWER) ...) (del-list ITEMS new-blade)))
+                                                                                                                     (PLAYER ...(cons (ITEM ... (+ 1 POWER) ...) (del-list ITEMS new-blade)))
                                                                                                                           -10)
                                                                                                                           W)))))))))))
                                                                                                                       
@@ -563,11 +463,7 @@
                                                                                                               (next-player W))))))))))
 
 
-;リストからアイテムを除去
-(define (delete-item-list item lst new-lst)
-    (cond ((null? lst) new-lst)
-          ((equal? item (car lst)) (delete-item-list item (cdr lst) new-lst))
-          (else (delete-item-list item (cdr lst) (cons (car lst) new-lst)))))
+
                                                                                                           
 ;C10 傭兵はアイテム扱いにして戦闘システムに組み込むことにする
 (define youhei (lambda (W A)

@@ -1,0 +1,32 @@
+#lang racket
+
+
+(define-syntax (hyphen-define/ok1 stx)
+    (syntax-case stx ()
+      [(_ a b (args ...) body0 body ...)
+       (syntax-case (datum->syntax #'a
+                                   (string->symbol (format "~a-~a"
+                                                           (syntax->datum #'a)
+                                                           (syntax->datum #'b)))) ;syntax
+                    () ;()
+         [name #'(define (name args ...)
+                   body0 body ...)])]))
+
+
+(define-syntax (hyphen-define/ok2 stx)
+    (syntax-case stx ()
+      [(_ a b (args ...) body0 body ...)
+       (with-syntax ([name (datum->syntax #'a
+                                          (string->symbol (format "~a-~a"
+                                                                  (syntax->datum #'a)
+                                                                  (syntax->datum #'b))))];pattern
+                     )
+         #'(define (name args ...);body
+             body0 body ...))]))
+
+(syntax-case <syntax> () [<pattern> <body>])
+(with-syntax ([<pattern> <syntax>]) <body>)
+
+
+
+

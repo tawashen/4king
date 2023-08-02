@@ -9,19 +9,6 @@
 ;(require "4king-data.rkt")
 
 
-(define suit '("S" "D" "H" "C"))
-(define num '("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K"))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;PRINT関連
-(define *map-zero* (apply append '(
-                     (0 0 0 0 0 0 0)
-                     (0 0 0 0 0 0 0)
-                     (0 0 1 1 1 0 0)
-                     (0 0 1 2 1 0 0)
-                     (0 0 1 1 1 0 0)
-                     (0 0 0 0 0 0 0)
-                     (0 0 0 0 0 0 0)
-                     )))
 
 
 
@@ -52,6 +39,11 @@
 ;字札・絵札・JOKを配置したマップ
 ;(define *map* (narabi zihuda q-to-k *map-zero* '()))
 
+;リストを7つの要素ごとに分割する
+(define (split-list lst)
+  (if (null? lst)
+      '()
+      (cons (take lst 7) (split-list (drop lst 7)))))
 
 ;表示桁数揃える関数　全角版
 (define (align-string string)

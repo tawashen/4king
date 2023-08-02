@@ -1,11 +1,110 @@
 #lang racket
 
-(require "4king-data.rkt")
-(require "4king-print.rkt")
-(provide (all-defined-out))
+(require srfi/1)
+
+
+;;;;;;;;;;;;;;;;;;;4人のジャックテーブル
+(define jack-table (make-hash))
+
+;構造体　;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(struct CARD (NAME FLIST ALIST MES ENEMY ITEM GOLD FLIP) #:transparent)
+(struct ENEMY (NAME SKILLP HITP) #:transparent)
+(struct ITEM (NAME COST KIND ATT POWER) #:transparent)
+(struct PLAYER (NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) #:transparent)
+(struct WORLD (PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) #:transparent)
+
+;データ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;print関連
+
+(define *map-zero* (apply append '(
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 1 1 1 0 0)
+                     (0 0 1 2 1 0 0)
+                     (0 0 1 1 1 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     )))
+
+;プレイヤー配置マップ空状態
+(define *player-zero* (apply append '(
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     (0 0 0 0 0 0 0)
+                     )))
 
 
 
+
+
+;ユーティリティ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;print関連;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;リストを7つの要素ごとに分割する
+(define (split-list lst)
+  (if (null? lst)
+      '()
+      (cons (take lst 7) (split-list (drop lst 7)))))
+
+;表示桁数揃える関数 全角版
+(define (align-string string)
+      (cond
+         ((string=? "0" string) "_____")
+                     ((= 2 (string-length string)) (string-append string "___" ))
+                     ((= 3 (string-length string)) (string-append string "__" ))
+                     ((= 1 (string-length string)) (string-append string "____" ))))
+
+;プレイヤー配置関数 多人数プレイ対応
+(define (put-player map num players)
+  (if (null? players)
+      map
+      (put-player (list-set map (car players) num) (+ 1 num) (cdr players))))
+
+
+
+
+
+;cametanさん製Enumrate関数
+(define enumerate
+ (case-lambda
+  ((seq) (enumerate seq 0))
+  ((seq start) (map (lambda (x y)
+           (cons x y))
+          (range start (+ (length seq) start))
+          seq))))
+
+
+;プロンプト付きINPUT関数
+(define input
+ (case-lambda
+  (() (input ""))
+  ((prompt) (display prompt)(newline)
+       (read-line))))
+
+
+;;;;;;;;;;;;;;;;;;移動用チェック述語
+(define (hidari-ue? current)
+  (if (= 0 current) #f #t))
+(define (migi-ue? current)
+  (if (= 6 current) #f #t))
+(define (hidari-sita? current)
+  (if (= 42 current) #f #t))
+(define (migi-sita? current)
+  (if (= 48 current) #f #t))
+(define (hidari? current)
+  (if (= 0 (modulo current 7)) #f #t))
+(define (migi? current)
+  (if (= 0 (modulo (+ 1 current) 7)) #f #t))
+(define (ue? current)
+  (if (> 7 current) #f #t))
+(define (sita? current)
+  (if (< 42 current) #f #t))
 
 
 
@@ -14,7 +113,7 @@
   (flatten (cons (cdr lst) (car lst))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;関数
-(define (change-coord direct w num)
+(define (change-coord-main direct w num)
   (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) w))
     (let* ((new-coord (list-set COORD PHASE (+ (list-ref COORD PHASE) num)))
            (new-pmap (make-players-map new-coord)))
@@ -94,7 +193,7 @@
 ;into-world plyaer->world 後でUtilへ移動
 ;PLAYERをWORLDに入れる
 (define (into-world c-player world)
-     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+     (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) world))
        (let ((new-players (list-set PLAYERS (car PHASE) c-player)))
          (WORLD new-players ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN))))
 
@@ -115,20 +214,20 @@
 
 (define (equip-change c-player kind) ;player->player
    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
-    (let ((can-equip-list (filter (lambda (x) (stirng=? kind (ITEM-KIND x))) ITEMS)));Kind引数にマッチするものをアイテムからフィルター
+    (let ((can-equip-list (filter (lambda (x) (string=? kind (ITEM-KIND x))) ITEMS)));Kind引数にマッチするものをアイテムからフィルター
          (cond ((null? can-equip-list) (displayln "ねえよ!") (equip-change? c-player));対応物が無かったら装備するか?へ戻す
                (else 
     (let ((plus-num-list (map (lambda (num item) (cons num item)) (iota (length can-equip-list) 1 1) can-equip-list)));番号をリストにくっつける
     (for-each display (map (lambda (x) (format "[~a] ~a~%") (car x) (cdr x)) plus-num-list)) ;Noと装備候補表示
-    (let ((answer (string->num (read-line))))
+    (let ((answer (string->number (read-line))))
          (cond ((> answer (length can-equip-list)) equip-change c-player kind);答えがリスト以上だったらやり直し
                ((<= answer 0) (equip-change? c-player));0だったら装備するか?に戻す
                (else
                    (let* ((new-player (to-item-list c-player kind));現在装備しているものをItemに戻す
                           (new-equip (list-ref can-equip-list (- answer 1)));選んだアイテムをEquipにコピー
-                          (new-items (delete new-equip ITEM));Equipに指定したアイテムをItemから削除
+                          (new-items (delete new-equip ITEM)));Equipに指定したアイテムをItemから削除
                         (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) new-player))
-                                   (PLAYER NAME SKILLP HITP LUCKP (cons new-equip EQUIP) GOLD new-items SPECIAL STATUS)))))))))))))
+                                   (PLAYER NAME SKILLP HITP LUCKP (cons new-equip EQUIP) GOLD new-items SPECIAL STATUS))))))))))))
 
 ;現在装備している装備をItemに戻す関数
 (define (to-item-list player kind) ;player->player
@@ -139,35 +238,35 @@
 
 
 (define (inner-luck? c-player)
-    (match-let (((PLAYER ...) c-player))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                (if (> (car LUCKP) (dice)) #t #f)))
           
 (define (change-luck c-player num)
-    (match-let (((PLAYER ...) c-player))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                (let ((new-luckp (cond ((> (+ (car LUCKP) 1) (cdr LUCKP)) (cdr LUCKP))
                                       (else (+ (car LUCKP) 1)))))
-               (PLYER ... (cons new-luckp (cdr LUCKP))))))
+               (PLAYER NAME SKILLP HITP (cons new-luckp (cdr LUCKP)) EQUIP GOLD ITEMS SPECIAL STATUS))))
            
 (define (change-gold c-player num)
-    (match-let (((PLAYER ...) c-player))
-               (PLAYER ... (+ gold num) ...)))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
+               (PLAYER NAME SKILLP HITP LUCKP EQUIP (+ GOLD num) ITEMS SPECIAL STATUS)))
 
 (define (change-hitp c-player num)
-    (match-let (((PLAYER ...) c-player))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                (let ((new-hitp (cond ((> (+ (car HITP) 1) (cdr HITP)) (cdr HITP))
                                       (else (+ (car HITP) 1)))))
-               (PLYER ... (cons new-hitp (cdr HITP))))))
+               (PLAYER NAME SKILLP (cons new-hitp (cdr HITP)) LUCKP EQUIP GOLD ITEMS SPECIAL STATUS))))
            
 (define (change-skillp c-player num)
-    (match-let (((PLAYER ...) c-player))
+    (match-let (((PLAYER NAME SKILLP HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS) c-player))
                (let ((new-skillp (cond ((> (+ (car SKILLP) 1) (cdr SKILLP)) (cdr SKILLP))
                                       (else (+ (car SKILLP) 1)))))
-               (PLYER ... (cons new-skillp (cdr SKILLP))))))
+               (PLAYER NAME (cons new-skillp (cdr SKILLP)) HITP LUCKP EQUIP GOLD ITEMS SPECIAL STATUS))))
            
            
 (define (change-coord W num)
-                    (match-let (((WORLD ...) W))
-                               (WORLD ... (list-set COORD (car PHASE) num))))
+                    (match-let (((WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE COORD WIN) W))
+                               (WORLD PLAYERS ENEMIES MAPLIST SMAP PMAP PHASE (list-set COORD (car PHASE) num) WIN)))
 
 ;リストからアイテムを除去
 (define (delete-item-list item lst new-lst)
@@ -192,5 +291,5 @@
 
 
 
-
+;test;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
